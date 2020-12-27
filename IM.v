@@ -22,12 +22,12 @@ module IM(
 		input [31:0] PC,
 		output [31:0] Instr
     );
-		reg [31:0] Instruction [1023:0];
-		// 32bit × 1024，1024个指令
+		reg [31:0] Instruction [4095:0];
+		// 32bit × 4096，4096个指令
 
 		initial begin
 			$readmemh("code.txt",Instruction);
 		end
 		
-		assign Instr = Instruction[PC[11:2]];
+		assign Instr = Instruction[ PC[31:2] - (32'h0000_3000 >> 2)];
 endmodule

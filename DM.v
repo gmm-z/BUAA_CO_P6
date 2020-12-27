@@ -28,25 +28,25 @@ module DM(
 		input [31:0] PC,
 		output [31:0] MemOut
     );
-		reg [31:0] memory [1023:0];
+		reg [31:0] memory [4095:0];
 		
 		integer i;
 		
 		initial begin
-			for(i=0; i < 1024 ; i= i+1)begin
+			for(i=0; i < 4096 ; i= i+1)begin
 				memory[i] <= 0;
 			end
 		end
 	
-		assign MemOut = MemRead ? memory[MemAddr[11:2]] : 0;
+		assign MemOut = MemRead ? memory[MemAddr[31:2]] : 0;
 	
 		always@(posedge clk)begin
 			if(reset) begin
-				for(i=0; i < 1024 ; i= i+1)begin
+				for(i=0; i < 4096 ; i= i+1)begin
 					memory[i] <= 0;
 				end
 			end else if(MemWrite)begin
-				memory[MemAddr[11:2]] <= MemData;
+				memory[MemAddr[31:2]] <= MemData;
 				$display("%d@%h: *%h <= %h",$time,PC, MemAddr, MemData);
 			end 
 		end

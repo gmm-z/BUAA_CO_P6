@@ -50,23 +50,7 @@ module forward(
 		assign D_rs = ID_Instr_o[25:21];
 		assign D_rt = ID_Instr_o[20:16];
 		assign D_rd = ID_Instr_o[15:11];
-		assign D_func = ID_Instr_o[5:0];
-		wire  D_addu,D_subu, D_ori, D_lw, D_sw, D_beq, D_lui,D_jal, D_jr, D_nop,D_j;
-		
-		assign D_addu = (D_op == 6'b000000 && D_func == 6'b100001)?1:0;
-		assign D_subu = (D_op == 6'b000000 && D_func == 6'b100011)?1:0;
-		assign D_ori =  (D_op == 6'b001101) ? 1:0;
-		assign D_lw =   (D_op == 6'b100011) ? 1:0;
-		assign D_sw =   (D_op == 6'b101011) ? 1:0;
-		assign D_beq =  (D_op == 6'b000100) ? 1:0;
-		assign D_lui =  (D_op == 6'b001111) ? 1:0;
-		assign D_jal =  (D_op == 6'b000011) ? 1:0;
-		assign D_jr  =  (D_op == 6'b000000 && D_func == 6'b001000) ? 1:0;
-		assign D_nop =  (D_op == 6'b000000 && D_func == 6'b000000) ? 1:0;
-		assign D_j = (D_op == 6'b000010) ? 1:0;
-		
-		
-		
+		assign D_func = ID_Instr_o[5:0];	
 		
 		wire [5:0]E_op;
 		wire [5:0]E_func;
@@ -78,21 +62,8 @@ module forward(
 		assign E_rt = EX_Instr_o[20:16];
 		assign E_rd = EX_Instr_o[15:11];
 		assign E_func = EX_Instr_o[5:0];
-		wire  E_addu,E_subu, E_ori, E_lw, E_sw, E_beq, E_lui,E_jal, E_jr, E_nop,E_j;
-		
-		assign E_addu = (E_op == 6'b000000 && E_func == 6'b100001)?1:0;
-		assign E_subu = (E_op == 6'b000000 && E_func == 6'b100011)?1:0;
-		assign E_ori =  (E_op == 6'b001101) ? 1:0;
-		assign E_lw =   (E_op == 6'b100011) ? 1:0;
-		assign E_sw =   (E_op == 6'b101011) ? 1:0;
-		assign E_beq =  (E_op == 6'b000100) ? 1:0;
-		assign E_lui =  (E_op == 6'b001111) ? 1:0;
-		assign E_jal =  (E_op == 6'b000011) ? 1:0;
-		assign E_jr  =  (E_op == 6'b000000 && E_func == 6'b001000) ? 1:0;
-		assign E_nop =  (E_op == 6'b000000 && E_func == 6'b000000) ? 1:0;
-		assign E_j = (E_op == 6'b000010) ? 1:0;
-		
-		
+	
+	
 		wire [5:0]M_op;
 		wire [5:0]M_func;
 		wire [4:0]M_rs;
@@ -118,6 +89,8 @@ module forward(
 		assign M_j = (M_op == 6'b000010) ? 1:0;
 		
 		wire M_RegWrite;
+		
+		//这个地方比较重要，需要改动
 		assign M_RegWrite = M_addu || M_subu || M_lui || M_lw || M_ori || M_jal;
 		
 		assign D_RD1_forward = ((MEM_RegAddr_o == D_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && M_jal == 0) ? MEM_ALUout_o:

@@ -46,7 +46,9 @@ module Stall(
 		assign D_rt = ID_Instr_o[20:16];
 		assign D_rd = ID_Instr_o[15:11];
 		assign D_func = ID_Instr_o[5:0];
+		
 		wire  D_addu,D_subu, D_ori, D_lw, D_sw, D_beq, D_lui,D_jal, D_jr, D_nop,D_j;
+		wire stall_rs,stall_rt;
 		
 		assign D_addu = (D_op == 6'b000000 && D_func == 6'b100001)?1:0;
 		assign D_subu = (D_op == 6'b000000 && D_func == 6'b100011)?1:0;
@@ -60,6 +62,9 @@ module Stall(
 		assign D_nop =  (D_op == 6'b000000 && D_func == 6'b000000) ? 1:0;
 		assign D_j = (D_op == 6'b000010) ? 1:0;
 		
+		
+		
+		//需要进行改动
 		assign ID_Tnew_i = (D_addu || D_subu || D_ori || D_lui || D_jal)? 1:
 									(D_lw ) ? 2: 0;
 		
@@ -68,7 +73,7 @@ module Stall(
 								(D_addu || D_subu) ? 1 : 
 								(D_sw )? 2 : 3;
 
-		wire stall_rs,stall_rt;
+		
 		assign stall_rs = ( (EX_RegAddr_o == D_rs && EX_RegAddr_o != 0 && Tuse_rs < EX_Tnew_o ) || (MEM_RegAddr_o == D_rs && MEM_RegAddr_o !=0 && Tuse_rs < MEM_Tnew_o) )? 1 : 0; 
 		assign stall_rt =( (EX_RegAddr_o == D_rt && EX_RegAddr_o != 0 && Tuse_rt < EX_Tnew_o ) || (MEM_RegAddr_o == D_rt && MEM_RegAddr_o !=0 && Tuse_rt < MEM_Tnew_o) )? 1 : 0; 
 		assign en_PC = (stall_rs || stall_rt) ? 0:1;
