@@ -34,6 +34,12 @@ module mips(clk,reset);
 		wire [31:0] ID_PC4_o;
 		wire [31:0] ID_PC8_o;
 		
+		wire [2:0]Multiop;
+		wire start;
+		wire busy;
+		wire [31:0]hi;
+		wire [31:0]low;
+		
 		wire en;
 		assign en = 1;
 		
@@ -122,13 +128,14 @@ module mips(clk,reset);
 		
 		wire [1:0] D_RegDst;
 		wire D_EXTop;
-		wire [1:0] PC_SELECT;
+		wire [2:0] PC_SELECT;
 		Controller D_Controller (
 			.op(D_op), 
 			.func(D_func), 
 			.RegDst(D_RegDst),
 			.EXTop(D_EXTop),
-			.PC_SELECT(PC_SELECT)
+			.PC_SELECT(PC_SELECT),
+			.rt(D_rt)
 		);
 		
 		MUX_RegAddr D_MUX_RegAddr (
@@ -204,7 +211,10 @@ module mips(clk,reset);
 			.op(E_op), 
 			.func(E_func), 
 			.ALUSrc(E_ALUSrc), 
-			.ALU_SELECT(E_ALU_SELECT)
+			.ALU_SELECT(E_ALU_SELECT),
+			.rt(E_rt),
+			.Multiop(Multiop),
+			.start(start)
 		);	
 		wire [31:0]EX_RD2_o_forward;
 		
@@ -225,6 +235,10 @@ module mips(clk,reset);
 			.ALU_RESULT(E_ALUout)
 		);
 
+		assign Multiout = (Multiop == 3'b110 )?low :
+								(Multiop == 3'b111) ? hi : 0;
+		
+	
 		wire [31:0]EX_Instr_i;
 		wire [31:0]EX_PC_i;
 		wire [31:0]EX_PC4_i;
@@ -244,7 +258,9 @@ module mips(clk,reset);
 		assign EX_PC_i = EX_PC_o;
 		assign EX_PC4_i = EX_PC4_o;
 		assign EX_PC8_i = EX_PC8_o;
-		assign EX_ALUout_i = E_ALUout;
+		
+		assign EX_ALUout_i = (Multiop != 0) ?  Multiout:  E_ALUout;
+		//这里的ALUout包括了乘除法模块的输出
 		assign EX_RT_i = EX_RD2_o_forward;
 		assign EX_RegAddr_i = EX_RegAddr_o;
 		
@@ -278,14 +294,20 @@ module mips(clk,reset);
 		wire M_MemWrite,M_MemRead;
 		wire [5:0]M_op;
 		wire [5:0]M_func;
+		wire [4:0]M_rt;
 		assign M_op = MEM_Instr_o[31:26];
 		assign M_func = MEM_Instr_o[5:0];
+		assign M_rt = MEM_Instr_o[20:16];
+		wire M_sh,M_sb;
 		
 		Controller M_Controller (
 			.op(M_op), 
 			.func(M_func),  
 			.MemWrite(M_MemWrite), 
-			.MemRead(M_MemRead)
+			.MemRead(M_MemRead),
+			.rt(M_rt),
+			.M_sh(M_sh),
+			.M_sb(M_sb)
 		);	
 		
 		wire [31:0] M_MemAddr;
@@ -295,6 +317,7 @@ module mips(clk,reset);
 		assign M_MemAddr = MEM_ALUout_o;
 		assign M_MemData = MEM_RT_o;
 		wire [31:0]M_MemData_forward;
+		
 		DM DM (
 			.clk(clk), 
 			.reset(reset), 
@@ -303,7 +326,9 @@ module mips(clk,reset);
 			.MemAddr(M_MemAddr), 
 			.MemData(M_MemData_forward), 
 			.PC(MEM_PC_o), 
-			.MemOut(M_MemOut)
+			.MemOut(M_MemOut),
+			.sh(M_sh),
+			.sb(M_sb)
 		);
 		
 		wire [31:0] MEM_Instr_i;
@@ -351,27 +376,37 @@ module mips(clk,reset);
 
 		wire [5:0]W_op;
 		wire [5:0]W_func;
+		wire [4:0]W_rt;
 		assign W_op = WB_Instr_o[31:26];
 		assign W_func = WB_Instr_o[5:0];
+		assign W_rt = WB_Instr_o[20:16];
 		wire [1:0] W_MemtoReg;
 		
+		wire [2:0]DMextop;
 		Controller W_Controller (
 			.op(W_op), 
 			.func(W_func), 
 			.MemtoReg(W_MemtoReg),
-			.RegWrite(W_RegWrite)
+			.RegWrite(W_RegWrite),
+			.rt(W_rt),
+			.DMextop(DMextop)
 		);
-		
+		wire [31:0] DMextout;
 		
 		MUX_RegData MUX_RegData (
 			.ALU_RESULT(WB_ALUout_o), 
-			.MemOut(WB_MemData_o), 
+			.MemOut(DMextout), 
 			.PC8(WB_PC8_o), 
 			.MemtoReg(W_MemtoReg), 
 			.RegData(W_RegData)
 		);
 		
-	
+			DMext DMext (
+			 .Memout(WB_MemData_o), 
+			 .DMextop(DMextop), 
+			 .MemAddr(WB_ALUout_o), 
+			 .out(DMextout)
+			);
 		wire [31:0]PC_BEQ;
 		assign PC_BEQ = ID_PC4_o + {ID_EXTout_i,{2{1'b0}}};
 		
@@ -437,7 +472,24 @@ forward forward(
     .en_IFtoID(en_IFtoID), 
     .en_IDtoEX(en_IDtoEX), 
     .MEM_RegAddr_o(MEM_RegAddr_o), 
-    .EX_RegAddr_o(EX_RegAddr_o)
+    .EX_RegAddr_o(EX_RegAddr_o),
+	 .start(start),
+	 .busy(busy)
     );
-		
+	 
+	 
+	 Multi Multi (
+    .clk(clk), 
+    .reset(reset), 
+    .rs(EX_RD1_o_forward), 
+    .rt(EX_RD2_o_forward), 
+    .Multiop(Multiop), 
+    .start(start), 
+    .busy(busy), 
+    .hi(hi), 
+    .low(low)
+    );
+
+
+
 endmodule

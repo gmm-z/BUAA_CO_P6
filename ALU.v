@@ -31,6 +31,8 @@ module ALU(
 									(ALU_SELECT == 3'b010)?A+B:
 									(ALU_SELECT == 3'b011)?A-B:
 									(ALU_SELECT == 3'b100)?{B,{16{1'b0}}} :0;
+									
+		
 		assign isEqual = (A == B) ? 1 : 0;
 	
 endmodule

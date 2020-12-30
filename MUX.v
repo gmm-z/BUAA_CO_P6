@@ -56,14 +56,14 @@ module nPC(
 		input [31:0]PC_JAL,
 		input [31:0] RD1,
 		output [31:0] IN_PC,
-		input [1:0] PC_SELECT,
+		input [2:0] PC_SELECT,
 		input isEqual,
 		input en,
 		input [31:0]PC
 		);
 		
-		assign IN_PC = (en == 0)? PC:(PC_SELECT == 2'b01 && isEqual == 1)?PC_BEQ:
-							(PC_SELECT == 2'b10)? PC_JAL:
-							(PC_SELECT == 2'b11)? RD1: PC4;
+		assign IN_PC = (en == 0)? PC:(PC_SELECT == 3'b001 && isEqual == 1)?PC_BEQ:
+							(PC_SELECT == 3'b010)? PC_JAL:
+							(PC_SELECT == 3'b011)? RD1: PC4;
 		
 endmodule
