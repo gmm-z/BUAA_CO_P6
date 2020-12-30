@@ -1,5 +1,7 @@
 # intermediate build files
 *.bgn
+*.zip
+*.tfi
 *.bit
 *.bld
 *.cmd_log
