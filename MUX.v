@@ -57,12 +57,13 @@ module nPC(
 		input [31:0] RD1,
 		output [31:0] IN_PC,
 		input [2:0] PC_SELECT,
-		input isEqual,
+		input [7:0] b_flag,
 		input en,
-		input [31:0]PC
+		input [31:0]PC,
+		input [7:0] b_type
 		);
-		
-		assign IN_PC = (en == 0)? PC:(PC_SELECT == 3'b001 && isEqual == 1)?PC_BEQ:
+		// 0 beq  1-bne 2-blez 3-bgtz 4-bltz 5-bgez
+		assign IN_PC = (en == 0)? PC:( (b_type[0] && b_flag[0])||(b_type[1] && b_flag[1]) || (b_type[2] && b_flag[2])||(b_type[3] && b_flag[3])|| (b_type[4] && b_flag[4])||(b_type[5]&&b_flag[5])  )?PC_BEQ:
 							(PC_SELECT == 3'b010)? PC_JAL:
 							(PC_SELECT == 3'b011)? RD1: PC4;
 		

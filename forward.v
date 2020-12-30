@@ -141,22 +141,22 @@ module forward(
 		
 		
 		//这个地方比较重要，需要改动
-		assign M_RegWrite = addu || subu || lui || lw || ori || jal;
-		
-		assign D_RD1_forward = ((MEM_RegAddr_o == D_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 0) ? MEM_ALUout_o:
-										((MEM_RegAddr_o == D_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 1) ? MEM_PC8_o:
+		assign M_RegWrite = mflo||mfhi||jalr||slti||sltiu || sltu||slt|| xori||andi||addiu||addi||norr||xorr||orr||andd ||srav|| srlv || sllv||sra||srl||sll||lhu || lh ||lbu||lb|| addu || subu || lui || lw || ori || jal || add || sub;
+	
+		assign D_RD1_forward = ((MEM_RegAddr_o == D_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal||jalr) == 0) ? MEM_ALUout_o:
+										((MEM_RegAddr_o == D_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal||jalr) == 1) ? MEM_PC8_o:
 										((WB_RegAddr_o == D_rs) && (WB_RegAddr_o != 0) && W_RegWrite) ? W_RegData:D_RD1;
 										
-		assign D_RD2_forward = ((MEM_RegAddr_o == D_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 0) ? MEM_ALUout_o:
-										((MEM_RegAddr_o == D_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 1) ? MEM_PC8_o:
+		assign D_RD2_forward = ((MEM_RegAddr_o == D_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal||jalr)== 0) ? MEM_ALUout_o:
+										((MEM_RegAddr_o == D_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal || jalr) == 1) ? MEM_PC8_o:
 										((WB_RegAddr_o == D_rt) && (WB_RegAddr_o != 0) && W_RegWrite) ? W_RegData:D_RD2;
 		
-		assign EX_RD1_o_forward = ((MEM_RegAddr_o == E_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 0) ? MEM_ALUout_o:
-										((MEM_RegAddr_o == E_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 1) ? MEM_PC8_o:
+		assign EX_RD1_o_forward = ((MEM_RegAddr_o == E_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal || jalr) == 0) ? MEM_ALUout_o:
+										((MEM_RegAddr_o == E_rs) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal||jalr) == 1) ? MEM_PC8_o:
 										((WB_RegAddr_o == E_rs) && (WB_RegAddr_o != 0) && W_RegWrite) ? W_RegData : EX_RD1_o;
 										
-		assign EX_RD2_o_forward = ((MEM_RegAddr_o == E_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 0) ? MEM_ALUout_o:
-										((MEM_RegAddr_o == E_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && jal == 1) ? MEM_PC8_o:
+		assign EX_RD2_o_forward = ((MEM_RegAddr_o == E_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal||jalr) == 0) ? MEM_ALUout_o:
+										((MEM_RegAddr_o == E_rt) && (MEM_RegAddr_o != 0) && M_RegWrite && (jal||jalr) == 1) ? MEM_PC8_o:
 										((WB_RegAddr_o == E_rt) && (WB_RegAddr_o != 0) && W_RegWrite) ? W_RegData : EX_RD2_o;
 										
 		assign M_MemData_forward = ((WB_RegAddr_o == rt) && (WB_RegAddr_o != 0) && W_RegWrite) ? W_RegData : M_MemData;

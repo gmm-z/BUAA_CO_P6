@@ -42,6 +42,7 @@ module mips(clk,reset);
 		
 		wire en;
 		assign en = 1;
+		wire [7:0]b_type;
 		
 		IFU IFU (
 			.clk(clk), 
@@ -135,7 +136,8 @@ module mips(clk,reset);
 			.RegDst(D_RegDst),
 			.EXTop(D_EXTop),
 			.PC_SELECT(PC_SELECT),
-			.rt(D_rt)
+			.rt(D_rt),
+			.b_type(b_type)
 		);
 		
 		MUX_RegAddr D_MUX_RegAddr (
@@ -151,12 +153,12 @@ module mips(clk,reset);
 			.EXTout(ID_EXTout_i)
 		);
 		
-		wire isEqual;
+		wire [7:0] b_flag;
 		
 		ALU D_CMP (
 			 .A(D_RD1_forward), 
 			 .B(D_RD2_forward), 
-			 .isEqual(isEqual)
+			 .b_flag(b_flag)
 		 );
 		 
 		wire [1:0]ID_Tnew_i;
@@ -195,18 +197,19 @@ module mips(clk,reset);
 		wire [4:0] E_rd;
 		wire [5:0] E_func;
 		wire [15:0]E_imm16;
-		
+		wire [4:0] E_s;
 		assign E_func = EX_Instr_o[5:0];
 		assign E_op = EX_Instr_o[31:26];
 		assign E_imm16 = EX_Instr_o[15:0];
 		assign E_rs = EX_Instr_o[25:21];
 		assign E_rt = EX_Instr_o[20:16];
 		assign E_rd = EX_Instr_o[15:11];
+		assign E_s = EX_Instr_o[10:6];
 		
 		wire E_ALUSrc;
-		wire [2:0]E_ALU_SELECT;
+		wire [4:0]E_ALU_SELECT;
 		wire [31:0] E_ALU_IN;
-		
+		wire ALUoneSrc;
 		Controller E_Controller(
 			.op(E_op), 
 			.func(E_func), 
@@ -214,7 +217,8 @@ module mips(clk,reset);
 			.ALU_SELECT(E_ALU_SELECT),
 			.rt(E_rt),
 			.Multiop(Multiop),
-			.start(start)
+			.start(start),
+			.ALUoneSrc(ALUoneSrc)
 		);	
 		wire [31:0]EX_RD2_o_forward;
 		
@@ -228,8 +232,11 @@ module mips(clk,reset);
 		wire [31:0] E_ALUout;
 		wire [31:0] EX_RD1_o_forward;
 	
+		wire [31:0]ALU_A;
+		assign ALU_A = ALUoneSrc ? { 27'b0 ,E_s } : EX_RD1_o_forward;
+		
 		ALU ALU (
-			.A(EX_RD1_o_forward), 
+			.A(ALU_A), 
 			.B(E_ALU_IN), 
 			.ALU_SELECT(E_ALU_SELECT), 
 			.ALU_RESULT(E_ALUout)
@@ -259,7 +266,7 @@ module mips(clk,reset);
 		assign EX_PC4_i = EX_PC4_o;
 		assign EX_PC8_i = EX_PC8_o;
 		
-		assign EX_ALUout_i = (Multiop != 0) ?  Multiout:  E_ALUout;
+		assign EX_ALUout_i = (Multiop == 3'b110 || Multiop == 3'b111) ?  Multiout:  E_ALUout;
 		//这里的ALUout包括了乘除法模块的输出
 		assign EX_RT_i = EX_RD2_o_forward;
 		assign EX_RegAddr_i = EX_RegAddr_o;
@@ -421,9 +428,10 @@ module mips(clk,reset);
 			.RD1(D_RD1_forward), 
 			.IN_PC(IN_PC), 
 			.PC_SELECT(PC_SELECT), 
-			.isEqual(isEqual),
+			.b_flag(b_flag),
 			.en(en_PC),
-			.PC(IF_PC_i)
+			.PC(IF_PC_i),
+			.b_type(b_type)
 		);
 	 
 		

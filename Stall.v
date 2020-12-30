@@ -114,17 +114,21 @@ module Stall(
 		//以上是D级的指令翻译
 		
 		//需要进行改动
-		assign ID_Tnew_i = (addu || subu || ori || lui || jal)? 1:
-									(lw ) ? 2: 0;
+		//从E级开始产生数据，
+		assign ID_Tnew_i = ( mflo||mfhi||sltu||sltiu||slti||slt||xori||andi||addiu||addi||norr||xorr||orr||andd||srav||srlv||sllv||sra||srl||sll||sub||add||addu || subu || ori || lui || jal || jalr)? 1:
+									(lw ||lb ||lbu||lh||lhu ) ? 2: 0;
 		
-		assign Tuse_rs = (beq || jr) ? 0:(addu || subu || ori || lw || sw) ? 1 : 3;
-		assign Tuse_rt =  (beq) ? 0: 
-								(addu || subu) ? 1 : 
-								(sw )? 2 : 3;
+		//使用数据
+		assign Tuse_rs = (beq || jr || jalr||bne ||blez||bgtz||bltz||bgez) ? 0:
+								( mthi ||mtlo|| sltu||sltiu||slti||slt||xori||andi||addiu||addi||andd||orr||xorr||norr||multu||div||divu|| mult||sub||add||sb||sh||lhu||lh||lbu||lb||addu || subu || ori || lw || sw||sllv||srlv||srav) ? 1 :3;
+		assign Tuse_rt =  (beq || bne ) ? 0: 
+								(  sltu||slt||andd||orr||xorr||norr||multu||div||divu|| mult||addu || add|| subu || sub || sll || srl||sra ||sllv||srlv||srav) ? 1 : 
+								(sw || sb || sh )? 2 : 3;
 
 		
 		assign stall_rs = ( (EX_RegAddr_o == rs && EX_RegAddr_o != 0 && Tuse_rs < EX_Tnew_o ) || (MEM_RegAddr_o == rs && MEM_RegAddr_o !=0 && Tuse_rs < MEM_Tnew_o) )? 1 : 0; 
 		assign stall_rt =( (EX_RegAddr_o == rt && EX_RegAddr_o != 0 && Tuse_rt < EX_Tnew_o ) || (MEM_RegAddr_o == rt && MEM_RegAddr_o !=0 && Tuse_rt < MEM_Tnew_o) )? 1 : 0; 
+		
 		assign en_PC = (stall_rs || stall_rt) || busy || start ? 0:1;
 		assign en_IFtoID = (stall_rs || stall_rt) || busy || start? 0:1;
 		assign en_IDtoEX = (stall_rs || stall_rt) || busy || start? 0:1;

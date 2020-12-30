@@ -29,13 +29,15 @@ module Controller(
 		output MemRead,
 		output EXTop,
 		output ALUSrc,
-		output [2:0] ALU_SELECT,
+		output [4:0] ALU_SELECT,
 		input [4:0]rt,
 		output [2:0]Multiop,
 		output start,
 		output M_sh,
 		output M_sb,
-		output [2:0]DMextop
+		output [2:0]DMextop,
+		output ALUoneSrc,
+		output reg[7:0]b_type
     );
 		wire  addu,subu, ori, lw, sw, beq, lui, jal, jr, nop,j;
 		wire lb,lbu,lh,lhu,sb,sh,add,sub,mult,multu,div,divu,sll,srl,sra,sllv,srlv,srav;
@@ -103,43 +105,74 @@ module Controller(
 		assign M_sh = sh;
 		assign M_sb = sb;
 		
+		
+		assign ALUoneSrc = (sra ||sll || srl) ? 1:0;
+		
+		
 		//这里
-		assign RegWrite = lb|| addu || subu || lui || lw || ori || jal;
+		assign RegWrite =  mflo||mfhi||jalr||slti||sltiu || sltu||slt|| xori||andi||addiu||addi||norr||xorr||orr||andd ||srav|| srlv || sllv||sra||srl||sll||lhu || lh ||lbu||lb|| addu || subu || lui || lw || ori || jal || add || sub;
+		//是否进行寄存器写入
 		
 		
-		assign PC_SELECT = beq ? 3'b001:
-								(jal || j )? 3'b010:
-								jr ? 3'b011:3'b000;
+		//选择PC地址
+		assign PC_SELECT = (jal || j )? 3'b010:
+								(jr || jalr) ? 3'b011:3'b000;
+							//(en == 0)? PC:(PC_SELECT == 3'b001 && isEqual == 1)?PC_BEQ:
+							//(PC_SELECT == 3'b010)? PC_JAL:
+							//(PC_SELECT == 3'b011)? RD1: PC4;
 		
 		
-		assign RegDst = (addu || subu) ? 2'b01:
+		//选择写入寄存器地址
+		assign RegDst = ( mfhi||mflo||jalr||slt||sltu||norr||xorr||orr|| andd|| srav||srlv|| sllv||sra|| srl||sll||addu || subu || add || sub) ? 2'b01:
 								jal ? 2'b10 : 2'b00;
+			//	 (RegDst == 2'b01)?rd:
+			//	(RegDst == 2'b10)? (5'b11111):rt;
+		
+		
+		assign MemWrite = (sw || sb || sh) ? 1 : 0;
+		//是否写入DM
 		
 		
 		
-		assign MemWrite = sw ? 1 : 0;
+		//写入寄存器的值
+		assign MemtoReg = (lw || lb || lbu || lh || lhu ) ? 2'b01:
+								(jal || jalr) ? 2'b11: 2'b00;
+				//默认是ALU结果
+				//(MemtoReg == 2'b11)?PC8:
+				//(MemtoReg == 2'b01)?MemOut: ALU_RESULT;	
+		
+		//内存读取
+		assign MemRead = (lw||lb || lbu || lh || lhu ) ? 1 : 0;
 		
 		
+		//是否无符号扩展
+		assign EXTop = ( ori || andi || xori) ? 1: 0;
+				//默认是符号扩展
 		
-		
-		assign MemtoReg = lw ? 2'b01:
-								jal ? 2'b11: 2'b00;
-		
-		
-		assign MemRead = lw ? 1 : 0;
-		
-		
-		assign EXTop = ori ? 1: 0;
-		
-		
-		
-		assign ALUSrc = ori || sw || lw || lui;
-		
-		
-		assign ALU_SELECT = (addu || sw || lw) ? 3'b010:
-									subu ? 3'b011:
-									ori ? 3'b001:
-									lui? 3'b100:0;
+		//ALU第二个的输入
+		assign ALUSrc = sltiu||slti|| ori || sw || lw || lui || lb || lbu || lh || lhu || sb || sh || addi || addiu || andi || xori;
+				//这里是控制第二个ALU输入，选择是 EXT的结果，还是rt（RD2）
+				//ALU_IN = ALUSrc ? EXTout : RD2;
+				
+				
+		assign ALU_SELECT = (addiu|| addi||addu || sw || lw || lb || lbu || lh || lhu || sh || sb || add || sub) ? 5'b00010:
+									subu ? 5'b00011:
+									(ori || orr) ? 5'b00001:
+									lui? 5'b00100:
+									(sll || sllv)? 5'b00101:
+									(srl || srlv)? 5'b00110:
+									(sra || srav)? 5'b00111:
+									(andd || andi)?5'b00000:
+									(xorr || xori)? 5'b01000:
+									norr? 5'b01001:
+									(slt || slti )? 5'b01010:
+									(sltu || sltiu)? 5'b01011:0;
+									// (ALU_SELECT==5'b00000)? A&B:
+									//(ALU_SELECT == 5'b00001)?A|B:
+									//(ALU_SELECT == 5'b00010)?A+B:
+									//(ALU_SELECT == 5'b00011)?A-B:
+									//(ALU_SELECT == 5'b00100)?{B,{16{1'b0}}} :0;
+									//(ALU_select == 5'b00101) 是 sll
 									
 									
 		assign Multiop = (mult)? 3'b000 : 
@@ -157,4 +190,23 @@ module Controller(
 								lh ? 3'b011:
 								lhu? 3'b100:0;
 		
+		
+		initial begin
+			b_type <= 0;
+		end
+		always@*begin
+					// 0 beq  1-bne 2-blez 3-bgtz 4-bltz 5-bgez
+			if(beq)begin
+				b_type = 0;
+				b_type[0] = 1;
+			end
+			if(bne)begin
+				b_type = 0; b_type[1] = 1;
+			end
+			if(blez)begin b_type = 0; b_type[2] = 1;
+			end
+			if(bgtz)begin b_type = 0; b_type[3] = 1; end
+			if(bltz)begin b_type = 0; b_type[4] = 1; end
+			if(bgez)begin b_type = 0; b_type[5] = 1; end
+		end
 endmodule

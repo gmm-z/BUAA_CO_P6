@@ -83,7 +83,7 @@ module Multi(
 				end 
 				if(Multiop == 3'b101)begin
 				//mtlo	
-					LOW <= rt;
+					LOW <= rs;
 				end
 			end
 			else if(busy)begin
