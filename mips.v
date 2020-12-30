@@ -242,6 +242,7 @@ module mips(clk,reset);
 			.ALU_RESULT(E_ALUout)
 		);
 
+		wire [31:0] Multiout;
 		assign Multiout = (Multiop == 3'b110 )?low :
 								(Multiop == 3'b111) ? hi : 0;
 		

@@ -155,8 +155,8 @@ module Controller(
 				//ALU_IN = ALUSrc ? EXTout : RD2;
 				
 				
-		assign ALU_SELECT = (addiu|| addi||addu || sw || lw || lb || lbu || lh || lhu || sh || sb || add || sub) ? 5'b00010:
-									subu ? 5'b00011:
+		assign ALU_SELECT = (addiu|| addi||addu || sw || lw || lb || lbu || lh || lhu || sh || sb || add) ? 5'b00010:
+									(subu || sub) ? 5'b00011:
 									(ori || orr) ? 5'b00001:
 									lui? 5'b00100:
 									(sll || sllv)? 5'b00101:
@@ -192,21 +192,22 @@ module Controller(
 		
 		
 		initial begin
-			b_type <= 0;
+			b_type = 0;
 		end
 		always@*begin
+			b_type = 0;
 					// 0 beq  1-bne 2-blez 3-bgtz 4-bltz 5-bgez
 			if(beq)begin
-				b_type = 0;
+			
 				b_type[0] = 1;
 			end
 			if(bne)begin
-				b_type = 0; b_type[1] = 1;
+			 b_type[1] = 1;
 			end
-			if(blez)begin b_type = 0; b_type[2] = 1;
+			if(blez)begin  b_type[2] = 1;
 			end
-			if(bgtz)begin b_type = 0; b_type[3] = 1; end
-			if(bltz)begin b_type = 0; b_type[4] = 1; end
-			if(bgez)begin b_type = 0; b_type[5] = 1; end
+			if(bgtz)begin  b_type[3] = 1; end
+			if(bltz)begin  b_type[4] = 1; end
+			if(bgez)begin  b_type[5] = 1; end
 		end
 endmodule
